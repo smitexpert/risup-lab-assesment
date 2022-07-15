@@ -1,0 +1,54 @@
+version: "3.7"
+services:
+  app:
+    build:
+      context: ./php/
+      dockerfile: Dockerfile
+    image: laravel-php7.4-image
+    container_name: member-app
+    restart: unless-stopped
+    working_dir: /var/www
+    volumes:
+      - ./../:/var/www
+      - ./php/local.ini:/usr/local/etc/php/conf.d/local.ini
+    networks:
+      - member-app-network
+
+  db:
+    image: mysql:5.7
+    container_name: member-db
+    restart: unless-stopped
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_DATABASE: member-app
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_PASSWORD: password
+      MYSQL_ROOT_USER: root
+      SERVICE_TAGS: dev
+      SERVICE_NAME: mysql
+    volumes:
+      - ./mysql/my.cnf:/etc/mysql/my.cnf
+      - ./mysql/docker-entrypoint-initdb.d/:/docker-entrypoint-initdb.d/
+    depends_on:
+      - app
+    networks:
+      - member-app-network
+
+  nginx:
+    image: nginx:alpine
+    container_name: member-nginx
+    restart: unless-stopped
+    ports:
+      - 8000:80
+    volumes:
+      - ./../:/var/www
+      - ./nginx/conf.d/:/etc/nginx/conf.d/
+    depends_on:
+      - app
+    networks:
+      - member-app-network
+
+networks:
+  member-app-network:
+    driver: bridge
